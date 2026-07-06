@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wljs.medical_platform.mapper.DepartmentMapper">
+
+    <resultMap id="DepartmentResultMap" type="com.wljs.medical_platform.entity.Department">
+        <id property="departmentId" column="department_id" />
+        <result property="departmentName" column="department_name" />
+        <result property="createdTime" column="created_time" />
+    </resultMap>
+
+    <select id="findAll" resultMap="DepartmentResultMap">
+        SELECT * FROM department ORDER BY department_id
+    </select>
+
+    <select id="findById" parameterType="int" resultMap="DepartmentResultMap">
+        SELECT * FROM department WHERE department_id = #{departmentId}
+    </select>
+
+    <select id="findByName" parameterType="string" resultMap="DepartmentResultMap">
+        SELECT * FROM department WHERE department_name = #{departmentName}
+    </select>
+
+    <select id="countDepartments" resultType="int">
+        SELECT COUNT(*) FROM department
+    </select>
+
+    <insert id="insertDepartment" parameterType="com.wljs.medical_platform.entity.Department"
+            useGeneratedKeys="true" keyProperty="departmentId">
+        INSERT INTO department (department_name) VALUES (#{departmentName})
+    </insert>
+
+    <!-- 批量插入数据 -->
+    <insert id="batchInsertDepartments" parameterType="java.util.List">
+        INSERT INTO department (department_name)
+        VALUES
+        <foreach collection="list" item="department" separator=",">
+            (#{department.departmentName})
+        </foreach>
+    </insert>
+
+    <!-- 修改数据 -->
+    <update id="updateDepartment" parameterType="Department">
+        UPDATE department
+        SET department_name = #{departmentName}
+        WHERE department_id = #{departmentId}
+    </update>
+
+    <!-- 删除数据 -->
+    <delete id="deleteDepartment" parameterType="int">
+        DELETE FROM department WHERE department_id = #{departmentId}
+    </delete>
+
+    <!-- 批量删除数据 -->
+    <delete id="batchDeleteDepartments" parameterType="java.util.List">
+        DELETE FROM department WHERE department_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

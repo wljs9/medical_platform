@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wljs.medical_platform.mapper.MedicalRecordMapper">
+
+    <resultMap id="MedicalRecordResultMap" type="com.wljs.medical_platform.entity.MedicalRecord">
+        <id property="recordId" column="record_id" />
+        <result property="patientId" column="patient_id" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="visitDate" column="visit_date" />
+        <result property="symptoms" column="symptoms" />
+        <result property="diagnosis" column="diagnosis" />
+        <result property="createdTime" column="created_time" />
+    </resultMap>
+
+    <select id="findAll" resultMap="MedicalRecordResultMap">
+        SELECT * FROM medical_record ORDER BY record_id LIMIT 1000
+    </select>
+
+    <select id="findById" parameterType="int" resultMap="MedicalRecordResultMap">
+        SELECT * FROM medical_record WHERE record_id = #{recordId}
+    </select>
+
+    <select id="findByPatientId" parameterType="int" resultMap="MedicalRecordResultMap">
+        SELECT * FROM medical_record WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="findByDoctorId" parameterType="int" resultMap="MedicalRecordResultMap">
+        SELECT * FROM medical_record WHERE doctor_id = #{doctorId}
+    </select>
+
+    <select id="countMedicalRecords" resultType="int">
+        SELECT COUNT(*) FROM medical_record
+    </select>
+
+    <insert id="insertMedicalRecord" parameterType="com.wljs.medical_platform.entity.MedicalRecord"
+            useGeneratedKeys="true" keyProperty="recordId">
+        INSERT INTO medical_record (patient_id, doctor_id, visit_date, symptoms, diagnosis)
+        VALUES (#{patientId}, #{doctorId}, #{visitDate}, #{symptoms}, #{diagnosis})
+    </insert>
+
+    <!-- 批量插入数据 -->
+    <insert id="batchInsertMedicalRecords" parameterType="java.util.List">
+        INSERT INTO medical_record (patient_id, doctor_id, visit_date, symptoms, diagnosis)
+        VALUES
+        <foreach collection="list" item="record" separator=",">
+            (#{record.patientId}, #{record.doctorId}, #{record.visitDate}, #{record.symptoms}, #{record.diagnosis})
+        </foreach>
+    </insert>
+
+    <!-- 修改数据 -->
+    <update id="updateMedicalRecord" parameterType="MedicalRecord">
+        UPDATE medical_record
+        SET patient_id = #{patientId}, doctor_id = #{doctorId}, visit_date = #{visitDate},
+            symptoms = #{symptoms}, diagnosis = #{diagnosis}
+        WHERE record_id = #{recordId}
+    </update>
+
+    <!-- 删除数据 -->
+    <delete id="deleteMedicalRecord" parameterType="int">
+        DELETE FROM medical_record WHERE record_id = #{recordId}
+    </delete>
+
+    <!-- 批量删除数据 -->
+    <delete id="batchDeleteMedicalRecords" parameterType="java.util.List">
+        DELETE FROM medical_record WHERE record_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据患者ID删除病历 -->
+    <delete id="deleteByPatientId" parameterType="int">
+        DELETE FROM medical_record WHERE patient_id = #{patientId}
+    </delete>
+
+    <!-- 根据医生ID删除病历 -->
+    <delete id="deleteByDoctorId" parameterType="int">
+        DELETE FROM medical_record WHERE doctor_id = #{doctorId}
+    </delete>
+
+</mapper>

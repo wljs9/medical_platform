@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wljs.medical_platform.mapper.DoctorMapper">
+
+    <resultMap id="DoctorResultMap" type="com.wljs.medical_platform.entity.Doctor">
+        <id property="doctorId" column="doctor_id" />
+        <result property="name" column="name" />
+        <result property="gender" column="gender" />
+        <result property="departmentId" column="department_id" />
+        <result property="title" column="title" />
+        <result property="phone" column="phone" />
+        <result property="createdTime" column="created_time" />
+    </resultMap>
+
+    <select id="findAll" resultMap="DoctorResultMap">
+        SELECT * FROM doctor ORDER BY doctor_id LIMIT 1000
+    </select>
+
+    <select id="findById" parameterType="int" resultMap="DoctorResultMap">
+        SELECT * FROM doctor WHERE doctor_id = #{doctorId}
+    </select>
+
+    <select id="findByName" parameterType="string" resultMap="DoctorResultMap">
+        SELECT * FROM doctor WHERE name LIKE CONCAT('%', #{name}, '%') LIMIT 100
+    </select>
+
+    <select id="findByDepartmentId" parameterType="int" resultMap="DoctorResultMap">
+        SELECT * FROM doctor WHERE department_id = #{departmentId}
+    </select>
+
+    <select id="countDoctors" resultType="int">
+        SELECT COUNT(*) FROM doctor
+    </select>
+
+    <!-- 插入数据 -->
+    <insert id="insertDoctor" parameterType="Doctor" useGeneratedKeys="true" keyProperty="doctorId">
+        INSERT INTO doctor (name, gender, department_id, title, phone)
+        VALUES (#{name}, #{gender}, #{departmentId}, #{title}, #{phone})
+    </insert>
+
+    <!-- 批量插入数据 -->
+    <insert id="batchInsertDoctors" parameterType="java.util.List">
+        INSERT INTO doctor (name, gender, department_id, title, phone)
+        VALUES
+        <foreach collection="list" item="doctor" separator=",">
+            (#{doctor.name}, #{doctor.gender}, #{doctor.departmentId}, #{doctor.title}, #{doctor.phone})
+        </foreach>
+    </insert>
+
+    <!-- 修改数据 -->
+    <update id="updateDoctor" parameterType="Doctor">
+        UPDATE doctor
+        SET name = #{name}, gender = #{gender}, department_id = #{departmentId}, title = #{title}, phone = #{phone}
+        WHERE doctor_id = #{doctorId}
+    </update>
+
+    <!-- 删除数据 -->
+    <delete id="deleteDoctor" parameterType="int">
+        DELETE FROM doctor WHERE doctor_id = #{doctorId}
+    </delete>
+
+    <!-- 批量删除数据 -->
+    <delete id="batchDeleteDoctors" parameterType="java.util.List">
+        DELETE FROM doctor WHERE doctor_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

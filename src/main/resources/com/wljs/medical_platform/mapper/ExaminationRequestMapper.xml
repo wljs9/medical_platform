@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wljs.medical_platform.mapper.ExaminationRequestMapper">
+
+    <resultMap id="ExaminationRequestResultMap" type="com.wljs.medical_platform.entity.ExaminationRequest">
+        <id property="requestId" column="request_id" />
+        <result property="patientId" column="patient_id" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="requestDate" column="request_date" />
+        <result property="examinationType" column="examination_type" />
+        <result property="status" column="status" />
+        <result property="createdTime" column="created_time" />
+    </resultMap>
+
+    <select id="findAll" resultMap="ExaminationRequestResultMap">
+        SELECT * FROM examination_request ORDER BY request_id LIMIT 1000
+    </select>
+
+    <select id="findById" parameterType="int" resultMap="ExaminationRequestResultMap">
+        SELECT * FROM examination_request WHERE request_id = #{requestId}
+    </select>
+
+    <select id="findByPatientId" parameterType="int" resultMap="ExaminationRequestResultMap">
+        SELECT * FROM examination_request WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="findByDoctorId" parameterType="int" resultMap="ExaminationRequestResultMap">
+        SELECT * FROM examination_request WHERE doctor_id = #{doctorId}
+    </select>
+
+    <select id="findByStatus" parameterType="string" resultMap="ExaminationRequestResultMap">
+        SELECT * FROM examination_request WHERE status = #{status}
+    </select>
+
+    <select id="countExaminationRequests" resultType="int">
+        SELECT COUNT(*) FROM examination_request
+    </select>
+
+    <insert id="insertExaminationRequest" parameterType="com.wljs.medical_platform.entity.ExaminationRequest"
+            useGeneratedKeys="true" keyProperty="requestId">
+        INSERT INTO examination_request (patient_id, doctor_id, request_date, examination_type, status)
+        VALUES (#{patientId}, #{doctorId}, #{requestDate}, #{examinationType}, #{status})
+    </insert>
+
+    <!-- 批量插入数据 -->
+    <insert id="batchInsertExaminationRequests" parameterType="java.util.List">
+        INSERT INTO examination_request (patient_id, doctor_id, request_date, examination_type, status)
+        VALUES
+        <foreach collection="list" item="request" separator=",">
+            (#{request.patientId}, #{request.doctorId}, #{request.requestDate}, #{request.examinationType}, #{request.status})
+        </foreach>
+    </insert>
+
+    <!-- 修改数据 -->
+    <update id="updateExaminationRequest" parameterType="ExaminationRequest">
+        UPDATE examination_request
+        SET patient_id = #{patientId}, doctor_id = #{doctorId}, request_date = #{requestDate},
+            examination_type = #{examinationType}, status = #{status}
+        WHERE request_id = #{requestId}
+    </update>
+
+    <!-- 删除数据 -->
+    <delete id="deleteExaminationRequest" parameterType="int">
+        DELETE FROM examination_request WHERE request_id = #{requestId}
+    </delete>
+
+    <!-- 批量删除数据 -->
+    <delete id="batchDeleteExaminationRequests" parameterType="java.util.List">
+        DELETE FROM examination_request WHERE request_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据患者ID删除检查申请 -->
+    <delete id="deleteByPatientId" parameterType="int">
+        DELETE FROM examination_request WHERE patient_id = #{patientId}
+    </delete>
+
+    <!-- 根据医生ID删除检查申请 -->
+    <delete id="deleteByDoctorId" parameterType="int">
+        DELETE FROM examination_request WHERE doctor_id = #{doctorId}
+    </delete>
+
+    <!-- 更新检查状态 -->
+    <update id="updateStatus" parameterType="map">
+        UPDATE examination_request SET status = #{status} WHERE request_id = #{requestId}
+    </update>
+
+</mapper>

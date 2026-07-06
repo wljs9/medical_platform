@@ -1,0 +1,29 @@
+server:
+  port: 8080
+  address: 0.0.0.0 #允许所有ip访问
+spring:
+  web:
+    resources:
+      static-locations: classpath:/static/
+  mvc:
+    static-path-pattern: /**
+  datasource:
+    url: jdbc:mysql://localhost:3306/medical_platform?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: ${DB_USERNAME:root}
+    # 数据库密码通过环境变量注入,不再硬编码于仓库(CVE/泄露防护)
+    # 本地启动:set DB_PASSWORD=你的密码  (Linux: export DB_PASSWORD=...)
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jackson:
+    time-zone: GMT+8
+    date-format: yyyy-MM-dd HH:mm:ss
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.wljs.medical_platform.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.wljs.medical_platform.mapper: debug

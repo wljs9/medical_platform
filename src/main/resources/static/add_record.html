@@ -1,0 +1,250 @@
+<!-- 就诊记录页面 -->
+
+<!-- 功能模块：
+- 患者选择（搜索或下拉）
+- 医生选择（按科室筛选）
+- 症状输入
+- 诊断结果输入
+- 检查申请选项
+- 提交按钮
+
+API调用：
+POST /api/medical-records
+POST /api/examination-requests
+GET /api/patients
+GET /api/doctors
+GET /api/departments -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新增就诊记录 - 医疗管理系统</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="addRecordApp">
+        <header class="header">
+            <h1>新增就诊记录</h1>
+            <nav>
+                <a href="index.html" class="nav-link">返回患者查询</a>
+            </nav>
+        </header>
+
+        <div class="container">
+            <!-- 连接状态 -->
+            <div class="status-bar">
+                <span>后端连接状态: {{ connectionStatus }}</span>
+            </div>
+
+            <!-- 错误消息 -->
+            <div v-if="errorMessage" class="error-message">
+                {{ errorMessage }}
+            </div>
+
+            <!-- 成功消息 -->
+            <div v-if="successMessage" class="success-message">
+                {{ successMessage }}
+            </div>
+
+            <!-- 患者信息部分 -->
+            <div class="form-section">
+                <h3>1. 患者信息</h3>
+                <patient-selection 
+                    :selected-patient="selectedPatient"
+                    :patient-search-query="patientSearchQuery"
+                    :patient-search-results="patientSearchResults"
+                    :add-record-utils="addRecordUtils"
+                    @update:patient-search-query="patientSearchQuery = $event"
+                    @search-patients="searchPatients"
+                    @select-patient="selectPatient">
+                </patient-selection>
+            </div>
+
+            <!-- 医生信息部分 -->
+            <div class="form-section">
+                <h3>2. 医生信息</h3>
+                <doctor-selection
+                    :departments="departments"
+                    :doctors="doctors"
+                    :selected-department="selectedDepartment"
+                    :selected-doctor-id="selectedDoctorId"
+                    @update:selected-department="selectedDepartment = $event"
+                    @update:selected-doctor-id="selectedDoctorId = $event"
+                    @filter-doctors="filterDoctors">
+                </doctor-selection>
+            </div>
+
+            <!-- 就诊信息部分 -->
+            <div class="form-section">
+                <h3>3. 就诊信息</h3>
+                <visit-information
+                    :symptoms="symptoms"
+                    :diagnosis="diagnosis"
+                    :visit-date="visitDate"
+                    @update:symptoms="symptoms = $event"
+                    @update:diagnosis="diagnosis = $event"
+                    @update:visit-date="visitDate = $event">
+                </visit-information>
+            </div>
+
+            <!-- 检查申请部分 -->
+            <div class="form-section">
+                <h3>4. 检查申请（可选）</h3>
+                <examination-request
+                    :need-examination="needExamination"
+                    :examination-type="examinationType"
+                    @update:need-examination="needExamination = $event"
+                    @update:examination-type="examinationType = $event">
+                </examination-request>
+            </div>
+
+            <!-- 表单操作 -->
+            <div class="form-actions">
+                <button type="submit" @click="submitMedicalRecord" :disabled="submitting" class="submit-btn">
+                    {{ submitting ? '提交中...' : '提交就诊记录' }}
+                </button>
+                <button type="button" @click="resetForm" class="reset-btn">重置表单</button>
+            </div>
+        </div>
+    </div>
+
+     <!-- 引入组件模板 -->
+        <script type="text/x-template" id="patient-selection-template">
+        <div>
+            <!-- 移除患者选择方式，只保留现有患者搜索 -->
+            <div class="form-group">
+                <label for="patientSearch">搜索患者:</label>
+                <div class="search-container">
+                    <input 
+                        type="search" 
+                        id="patientSearch"
+                        v-model="localSearchQuery" 
+                        @input="handleSearchInput"
+                        placeholder="输入患者姓名或ID"
+                        class="search-input">
+                    <button type="button" @click="$emit('search-patients', localSearchQuery)" class="search-btn">搜索</button>
+                    <div v-if="patientSearchResults.length > 0" class="search-results">
+                        <div v-for="patient in patientSearchResults" 
+                            :key="patient.patientId"
+                            @click="$emit('select-patient', patient)"
+                            class="search-result-item">
+                            <div class="patient-search-info">
+                                <div><strong>姓名:</strong> {{ patient.name }}</div>
+                                <div><strong>ID:</strong> {{ patient.patientId }}</div>
+                                <div><strong>性别:</strong> {{ addRecordUtils.displayGender(patient.gender) }}</div>
+                                <div><strong>年龄:</strong> {{ addRecordUtils.calculateAge(patient.birthDate) }}岁</div>
+                                <div><strong>电话:</strong> {{ patient.phone || '无' }}</div>
+                                <div><strong>idCard:</strong> {{ patient.idCard || '无' }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 已选患者信息 -->
+            <div v-if="selectedPatient" class="selected-patient">
+                <h4>已选患者:</h4>
+                <div class="patient-info">
+                    <p><strong>姓名:</strong> {{ selectedPatient.name }}</p>
+                    <p><strong>ID:</strong> {{ selectedPatient.patientId }}</p>
+                    <p><strong>性别:</strong> {{ addRecordUtils.displayGender(selectedPatient.gender) }}</p>
+                    <p><strong>年龄:</strong> {{ addRecordUtils.calculateAge(selectedPatient.birthDate) }}岁</p>
+                    <p><strong>联系电话:</strong> {{ selectedPatient.phone || '未填写' }}</p>
+                    <p><strong>idCard:</strong> {{ selectedPatient.idCard || '未填写' }}</p>
+                </div>
+            </div>
+        </div>
+    </script>
+
+     <!-- 医生选择组件模板 -->
+    <script type="text/x-template" id="doctor-selection-template">
+        <div>
+            <div class="form-group">
+                <label for="departmentFilter">筛选科室:</label>
+                <select id="departmentFilter" v-model="localSelectedDepartment">
+                    <option value="">所有科室</option>
+                    <option v-for="dept in departments" :key="dept.departmentId" :value="dept.departmentId">
+                        {{ dept.departmentName }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="doctorSelect">选择医生:</label>
+                <select id="doctorSelect" v-model="localSelectedDoctorId" required>
+                    <option value="">请选择医生</option>
+                    <option v-for="doctor in filteredDoctors" :key="doctor.doctorId" :value="doctor.doctorId">
+                        {{ doctor.name }} - {{ doctor.title }} - {{ getDepartmentName(doctor.departmentId) }}
+                    </option>
+                </select>
+            </div>
+        </div>
+    </script>
+
+    <!-- 就诊信息组件模板 -->
+    <script type="text/x-template" id="visit-information-template">
+        <div>
+            <div class="form-group">
+                <label for="symptoms">症状描述:</label>
+                <textarea 
+                    id="symptoms"
+                    v-model="localSymptoms" 
+                    placeholder="请输入患者的主要症状..."
+                    rows="4"
+                    required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="diagnosis">诊断结果:</label>
+                <textarea 
+                    id="diagnosis"
+                    v-model="localDiagnosis" 
+                    placeholder="请输入医生的诊断结果..."
+                    rows="4"
+                    required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="visitDate">就诊日期:</label>
+                <input 
+                    type="datetime-local" 
+                    id="visitDate"
+                    v-model="localVisitDate" 
+                    required>
+            </div>
+        </div>
+    </script>
+
+    <!-- 检查申请组件模板 -->
+    <script type="text/x-template" id="examination-request-template">
+        <div>
+            <div class="form-group checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" v-model="localNeedExamination"> 
+                    <span class="checkbox-text">需要检查</span>
+                </label>
+            </div>
+
+            <div v-if="localNeedExamination" class="examination-section">
+                <div class="form-group">
+                    <label for="examinationType">检查类型:</label>
+                    <input 
+                        type="text" 
+                        id="examinationType"
+                        v-model="localExaminationType" 
+                        placeholder="如:血常规、CT扫描等">
+                </div>
+            </div>
+        </div>
+    </script>
+
+
+    <!-- 引入JavaScript文件 -->
+    <script src="js/add-record-api.js"></script>
+    <script src="js/add-record-utils.js"></script>
+    <script src="js/add-record-main.js"></script>
+</body>
+</html>

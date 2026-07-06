@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wljs.medical_platform.mapper.PatientMapper">
+
+    <!-- 定义类型别名，确保MyBatis能找到实体类 -->
+    <resultMap id="PatientResultMap" type="com.wljs.medical_platform.entity.Patient">
+        <id property="patientId" column="patient_id" />
+        <result property="name" column="name" />
+        <result property="gender" column="gender" />
+        <result property="birthDate" column="birth_date" />
+        <result property="phone" column="phone" />
+        <result property="idCard" column="id_card" />
+        <result property="createdTime" column="created_time" />
+    </resultMap>
+
+
+
+    <!-- 基础查询 -->
+    <select id="findAll" resultMap="PatientResultMap">
+        SELECT * FROM patient
+        ORDER BY patient_id
+        LIMIT 1000
+    </select>
+
+    <select id="findById" parameterType="int" resultMap="PatientResultMap">
+        SELECT * FROM patient WHERE patient_id = #{patientId}
+    </select>
+
+    <select id="findByName" parameterType="string" resultMap="PatientResultMap">
+        SELECT * FROM patient
+        WHERE name LIKE CONCAT('%', #{name}, '%')
+        ORDER BY patient_id
+        LIMIT 100
+    </select>
+
+    <select id="countPatients" resultType="int">
+        SELECT COUNT(*) FROM patient
+    </select>
+
+    <!-- insertPatient方法 -->
+    <insert id="insertPatient" parameterType="com.wljs.medical_platform.entity.Patient"
+            useGeneratedKeys="true" keyProperty="patientId">
+        INSERT INTO patient (name, gender, birth_date, phone, id_card)
+        VALUES (#{name}, #{gender}, #{birthDate}, #{phone}, #{idCard})
+    </insert>
+
+    <!-- 多表JOIN查询：患者及其病历 -->
+    <resultMap id="PatientWithRecordsMap" type="com.wljs.medical_platform.entity.Patient" extends="PatientResultMap">
+        <collection property="medicalRecords" ofType="com.wljs.medical_platform.entity.MedicalRecord">
+            <id property="recordId" column="record_id" />
+            <result property="patientId" column="patient_id" />
+            <result property="doctorId" column="doctor_id" />
+            <result property="visitDate" column="visit_date" />
+            <result property="symptoms" column="symptoms" />
+            <result property="diagnosis" column="diagnosis" />
+            <result property="createdTime" column="mr_created_time" />
+        </collection>
+    </resultMap>
+
+    <select id="findPatientWithRecords" parameterType="int" resultMap="PatientWithRecordsMap">
+        SELECT
+            p.*,
+            mr.record_id,
+            mr.patient_id,
+            mr.doctor_id,
+            mr.visit_date,
+            mr.symptoms,
+            mr.diagnosis,
+            mr.created_time as mr_created_time
+        FROM patient p
+                 LEFT JOIN medical_record mr ON p.patient_id = mr.patient_id
+        WHERE p.patient_id = #{patientId}
+    </select>
+
+    <!-- 复杂JOIN查询：患者、病历和医生信息 -->
+    <select id="findPatientDetails" parameterType="int" resultType="map">
+        SELECT
+            p.patient_id as patientId,
+            p.name as patientName,
+            mr.record_id as recordId,
+            mr.visit_date as visitDate,
+            mr.diagnosis as diagnosis,
+            d.name as doctorName,
+            dep.department_name as departmentName
+        FROM patient p
+                 JOIN medical_record mr ON p.patient_id = mr.patient_id
+                 JOIN doctor d ON mr.doctor_id = d.doctor_id
+                 JOIN department dep ON d.department_id = dep.department_id
+        WHERE p.patient_id = #{patientId}
+        ORDER BY mr.visit_date DESC
+    </select>
+
+    <!-- 统计查询：各科室就诊人数 -->
+    <select id="getDepartmentPatientStats" resultType="map">
+        SELECT
+            dep.department_name as departmentName,
+            COUNT(DISTINCT p.patient_id) as patientCount,
+            COUNT(mr.record_id) as visitCount
+        FROM department dep
+                 LEFT JOIN doctor d ON dep.department_id = d.department_id
+                 LEFT JOIN medical_record mr ON d.doctor_id = mr.doctor_id
+                 LEFT JOIN patient p ON mr.patient_id = p.patient_id
+        GROUP BY dep.department_id, dep.department_name
+        ORDER BY patientCount DESC
+    </select>
+
+    <!-- 批量插入数据 -->
+    <insert id="batchInsertPatients" parameterType="java.util.List">
+        INSERT INTO patient (name, gender, birth_date, phone, id_card)
+        VALUES
+        <foreach collection="list" item="patient" separator=",">
+            (#{patient.name}, #{patient.gender}, #{patient.birthDate}, #{patient.phone}, #{patient.idCard})
+        </foreach>
+    </insert>
+
+    <!-- 修改数据 -->
+    <update id="updatePatient" parameterType="Patient">
+        UPDATE patient
+        SET name = #{name}, gender = #{gender}, birth_date = #{birthDate}, phone = #{phone}, id_card = #{idCard}
+        WHERE patient_id = #{patientId}
+    </update>
+
+    <!-- 删除数据 -->
+    <delete id="deletePatient" parameterType="int">
+        DELETE FROM patient WHERE patient_id = #{patientId}
+    </delete>
+
+    <!-- 批量删除数据 -->
+    <delete id="batchDeletePatients" parameterType="java.util.List">
+        DELETE FROM patient WHERE patient_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 获取id -->
+    <select id="getIdByName" resultType="integer">
+        SELECT patient_id FROM patient where name = #{name}
+    </select>
+
+    <!-- 多表JOIN查询：患者、病历和检查申请 -->
+    <resultMap id="PatientWithAllRecordsMap" type="com.wljs.medical_platform.entity.Patient" extends="PatientResultMap">
+        <collection property="medicalRecords" ofType="com.wljs.medical_platform.entity.MedicalRecord">
+            <id property="recordId" column="record_id" />
+            <result property="patientId" column="patient_id" />
+            <result property="doctorId" column="doctor_id" />
+            <result property="visitDate" column="visit_date" />
+            <result property="symptoms" column="symptoms" />
+            <result property="diagnosis" column="diagnosis" />
+            <result property="createdTime" column="mr_created_time" />
+        </collection>
+        <collection property="examinationRequests" ofType="com.wljs.medical_platform.entity.ExaminationRequest">
+            <id property="requestId" column="request_id" />
+            <result property="patientId" column="patient_id" />
+            <result property="doctorId" column="doctor_id" />
+            <result property="requestDate" column="request_date" />
+            <result property="examinationType" column="examination_type" />
+            <result property="status" column="status" />
+            <result property="createdTime" column="er_created_time" />
+        </collection>
+    </resultMap>
+
+    <select id="findPatientWithAllRecords" parameterType="int" resultMap="PatientWithAllRecordsMap">
+        SELECT
+            p.*,
+            mr.record_id,
+            mr.patient_id,
+            mr.doctor_id,
+            mr.visit_date,
+            mr.symptoms,
+            mr.diagnosis,
+            mr.created_time as mr_created_time,
+            er.request_id,
+            er.patient_id,
+            er.doctor_id,
+            er.request_date,
+            er.examination_type,
+            er.status
+        FROM patient p
+                 LEFT JOIN medical_record mr ON p.patient_id = mr.patient_id
+                 LEFT JOIN examination_request er ON p.patient_id = er.patient_id
+        WHERE p.patient_id = #{patientId}
+    </select>
+</mapper>
